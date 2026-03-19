@@ -17,7 +17,7 @@ LOGOLAR = {
 }
 
 # --- FONKSİYON: CANLI VERİ ÇEKME ---
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False) # 'show_spinner=False' ile otomatik 'Running' yazısını kapattık
 def piyasa_verilerini_kazila(kredi_turu):
     turu_harita = {"İhtiyaç Kredisi": "ihtiyac-kredisi", "Konut Kredisi": "konut-kredisi", "0 KM Araç Kredisi": "tasit-kredisi", "2. El Araç Kredisi": "tasit-kredisi"}
     url = f"https://www.hangikredi.com/kredi/{turu_harita.get(kredi_turu, 'ihtiyac-kredisi')}"
@@ -42,12 +42,10 @@ st.set_page_config(page_title="Kredi Analiz Rehberi", layout="wide")
 st.title("Kredi Analiz Rehberi")
 
 with st.sidebar:
-    # HOME TUŞU (SAYFAYI YENİLER VE EN BAŞA DÖNDÜRÜR)
     if st.button("Ana Sayfa", use_container_width=True):
         st.rerun()
     
     st.divider()
-    
     st.header("Kredi Parametreleri")
     kredi_turu = st.selectbox("Kredi Türü", ["İhtiyaç Kredisi", "Konut Kredisi", "0 KM Araç Kredisi", "2. El Araç Kredisi"])
     tutar = st.number_input("Kredi Tutarı (TL)", min_value=1000, value=100000, step=5000, format="%d")
@@ -56,19 +54,25 @@ with st.sidebar:
     hesapla_btn = st.button("ŞİMDİ HESAPLA", use_container_width=True, type="primary")
     
     st.divider()
-    
     st.subheader("Masraflar")
     sigorta = st.number_input("Sigorta Primleri (Hayat Sigortası, KASKO vb.) (TL)", value=1500)
     ekspertiz = st.number_input("Ekspertiz/Banka Ücretleri (TL)", value=0)
     rehin_ucreti = st.number_input("Taşınmaz/Araç Rehin Ücreti (TL)", value=0)
 
 if hesapla_btn:
-    with st.spinner('Güncel banka verileri yükleniyor, lütfen bekleyin...'):
-        time.sleep(1.2)
+    # Metinsiz sadece ikon görünen yükleyici
+    with st.spinner(''): 
+        time.sleep(1)
         banka_oranlari = piyasa_verilerini_kazila(kredi_turu)
         
-        st.success(f"{kredi_turu} için {tutar:,} TL - {vade} Ay Vadeli Hesaplama Tamamlandı.".replace(",", "."))
+        # 1. Başlık
+        st.subheader(f"{kredi_turu} için {tutar:,} TL - {vade} Ay Vadeli Hesaplama Tamamlandı.".replace(",", "."))
         
+        # 2. YASAL UYARI (Tam olarak istediğiniz yerde)
+        st.info("Yasal Uyarı: Girdiğiniz verilere göre oluşturulan yaklaşık hesap tablosudur. Faiz oranları, masraflar ve vergiler bankadan bankaya veya kişiye özel kredi notuna göre farklılık gösterebilir. Net bir hesaplama ve resmi teklif için lütfen bankanızla görüşün.")
+        st.divider()
+
+        # 3. Veri Kartları
         for banka, faiz in banka_oranlari.items():
             vergi = 1.25 if kredi_turu != "Konut Kredisi" else 1.00
             i = (faiz * vergi) / 100
@@ -93,8 +97,7 @@ if hesapla_btn:
                     st.write(f"**Kredi Tahsis Ücreti:** {tahsis_ucreti:,.2f} TL".replace(",", "X").replace(".", ",").replace("X", "."))
 
 else:
-    # İKONLAR KALDIRILDI, METİNLER GÜNCELLENDİ
     st.write("Sol taraftaki 'Kredi Parametreleri' ve 'Masraflar' bölümlerini doldurup 'ŞİMDİ HESAPLA' butonuna basarak hesaplamayı başlatın.")
     st.divider()
-    # YASAL UYARI METNİ
+    # Giriş ekranındaki yasal uyarı (sabit durur)
     st.info("Yasal Uyarı: Girdiğiniz verilere göre oluşturulan yaklaşık hesap tablosudur. Faiz oranları, masraflar ve vergiler bankadan bankaya veya kişiye özel kredi notuna göre farklılık gösterebilir. Net bir hesaplama ve resmi teklif için lütfen bankanızla görüşün.")
